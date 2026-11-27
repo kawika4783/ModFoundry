@@ -2,7 +2,7 @@ name: modfoundry
 services:
   preview:
     image: node:22-alpine
-    working_dir: /workspace/source
+    working_dir: /workspace
     command:
       - /bin/sh
       - -lc
