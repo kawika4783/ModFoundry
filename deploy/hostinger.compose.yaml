@@ -1,98 +1,37 @@
 name: modfoundry
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: modfoundry
-      POSTGRES_USER: modfoundry
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the application environment}
-    volumes:
-      - modfoundry-postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U modfoundry -d modfoundry"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    networks: [private]
-
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - modfoundry-redis:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    networks: [private]
-
-  migrate:
-    build:
-      context: https://github.com/kawika4783/ModFoundry.git#main
-      dockerfile: infra/api.Dockerfile
-    command: ["pnpm", "db:migrate"]
-    environment:
-      DATABASE_URL: postgresql://modfoundry:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the application environment}@postgres:5432/modfoundry?schema=public
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
-    networks: [private]
-
-  api:
-    build:
-      context: https://github.com/kawika4783/ModFoundry.git#main
-      dockerfile: infra/api.Dockerfile
+  preview:
+    image: node:22-alpine
+    working_dir: /workspace/source
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        apk add --no-cache git
+        corepack enable
+        rm -rf /workspace/source
+        git clone --depth 1 --branch main https://github.com/kawika4783/ModFoundry.git /workspace/source
+        cd /workspace/source
+        pnpm install --frozen-lockfile
+        pnpm --filter @modfoundry/web build
+        exec pnpm --filter @modfoundry/web start
     environment:
       NODE_ENV: production
-      PORT: "4000"
-      DATABASE_URL: postgresql://modfoundry:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the application environment}@postgres:5432/modfoundry?schema=public
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/api/v1/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-    read_only: true
-    tmpfs: [/tmp]
-    networks: [private]
-
-  web:
-    build:
-      context: https://github.com/kawika4783/ModFoundry.git#main
-      dockerfile: infra/web.Dockerfile
-    environment:
-      NODE_ENV: production
-      API_URL: http://api:4000
-      NEXT_PUBLIC_API_URL: /api/v1
-    depends_on:
-      api:
-        condition: service_healthy
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      NEXT_TELEMETRY_DISABLED: "1"
+      API_URL: http://127.0.0.1:4000
     ports:
       - "32121:3000"
+    volumes:
+      - modfoundry-pnpm-store:/root/.local/share/pnpm/store
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000"]
       interval: 15s
       timeout: 5s
-      retries: 10
+      start_period: 180s
+      retries: 20
     restart: unless-stopped
-    read_only: true
-    tmpfs: [/tmp, /app/apps/web/.next/cache]
-    networks: [private]
 
 volumes:
-  modfoundry-postgres: {}
-  modfoundry-redis: {}
-
-networks:
-  private:
-    internal: true
+  modfoundry-pnpm-store: {}
