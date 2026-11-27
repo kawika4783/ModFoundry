@@ -1,0 +1,19 @@
+{
+  "name": "modfoundry",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @modfoundry/web --filter @modfoundry/api dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "db:generate": "pnpm --filter @modfoundry/database prisma generate",
+    "db:migrate": "pnpm --filter @modfoundry/database prisma migrate deploy",
+    "db:seed": "pnpm --filter @modfoundry/database seed",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "typescript": "5.7.3"
+  }
+}

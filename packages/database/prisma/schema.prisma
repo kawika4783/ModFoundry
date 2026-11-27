@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETION_PENDING
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum CompatibilityStatus {
+  CANDIDATE
+  SUPPORTED
+  EXPERIMENTAL
+  VERIFIED
+  DEPRECATED
+  DISABLED
+}
+
+enum SubscriptionStatus {
+  FREE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum ProviderKind {
+  STRIPE
+  PAYPAL
+  SQUARE
+  PADDLE
+  LEMON_SQUEEZY
+  MANUAL
+}
+
+model User {
+  id                 String       @id @default(uuid()) @db.Uuid
+  email              String       @unique
+  username           String?      @unique
+  passwordHash       String
+  status             UserStatus   @default(ACTIVE)
+  emailVerifiedAt    DateTime?
+  mustChangePassword Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  memberships        Membership[]
+  sessions           Session[]
+  auditEvents        AuditEvent[] @relation("AuditActor")
+}
+
+model Tenant {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String         @unique
+  createdAt     DateTime       @default(now())
+  memberships   Membership[]
+  projects      Project[]
+  subscriptions Subscription[]
+  usage         UsageLedger[]
+  auditEvents   AuditEvent[]
+}
+
+model Membership {
+  tenantId  String         @db.Uuid
+  userId    String         @db.Uuid
+  role      MembershipRole
+  createdAt DateTime       @default(now())
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, userId])
+  @@index([userId])
+}
+
+model Session {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  csrfHash  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Project {
+  id        String          @id @default(uuid()) @db.Uuid
+  tenantId  String          @db.Uuid
+  name      String
+  slug      String
+  status    ProjectStatus   @default(ACTIVE)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  targets   ProjectTarget[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+}
+
+model CompatibilityProfile {
+  id                String              @id @default(uuid()) @db.Uuid
+  key               String
+  revision          Int
+  edition           String
+  gameVersion       String
+  releaseChannel    String
+  loader            String?
+  loaderVersion     String?
+  javaVersion       Int?
+  gradleVersion     String?
+  mappings          String?
+  capabilities      Json
+  limitations       Json
+  status            CompatibilityStatus @default(CANDIDATE)
+  workerImageDigest String?
+  publishedAt       DateTime?
+  createdAt         DateTime            @default(now())
+  targets           ProjectTarget[]
+
+  @@unique([key, revision])
+}
+
+model ProjectTarget {
+  id              String               @id @default(uuid()) @db.Uuid
+  tenantId        String               @db.Uuid
+  projectId       String               @db.Uuid
+  profileId       String               @db.Uuid
+  name            String
+  documentVersion Int                  @default(1)
+  document        Json
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  project         Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  profile         CompatibilityProfile @relation(fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, projectId])
+}
+
+model PlanVersion {
+  id                String         @id @default(uuid()) @db.Uuid
+  code              String
+  version           Int
+  name              String
+  currency          String
+  monthlyPriceMinor Int
+  annualPriceMinor  Int?
+  entitlements      Json
+  active            Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  subscriptions     Subscription[]
+
+  @@unique([code, version])
+}
+
+model Subscription {
+  id                     String             @id @default(uuid()) @db.Uuid
+  tenantId               String             @db.Uuid
+  planVersionId          String             @db.Uuid
+  provider               ProviderKind
+  providerSubscriptionId String?
+  status                 SubscriptionStatus
+  currentPeriodStart     DateTime
+  currentPeriodEnd       DateTime?
+  tenant                 Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planVersion            PlanVersion        @relation(fields: [planVersionId], references: [id])
+
+  @@index([tenantId, status])
+}
+
+model UsageLedger {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  metric         String
+  quantity       BigInt
+  occurredAt     DateTime @default(now())
+  idempotencyKey String   @unique
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, metric, occurredAt])
+}
+
+model PaymentProviderAccount {
+  id                    String         @id @default(uuid()) @db.Uuid
+  provider              ProviderKind
+  displayName           String
+  environment           String
+  enabledForCheckout    Boolean        @default(false)
+  processWebhooks       Boolean        @default(true)
+  credentialsCiphertext Bytes?
+  createdAt             DateTime       @default(now())
+  webhookEvents         WebhookEvent[]
+
+  @@unique([provider, environment])
+}
+
+model WebhookEvent {
+  id                String                 @id @default(uuid()) @db.Uuid
+  providerAccountId String                 @db.Uuid
+  providerEventId   String
+  receivedAt        DateTime               @default(now())
+  verifiedAt        DateTime?
+  processedAt       DateTime?
+  payload           Json
+  providerAccount   PaymentProviderAccount @relation(fields: [providerAccountId], references: [id])
+
+  @@unique([providerAccountId, providerEventId])
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String?  @db.Uuid
+  actorUserId String?  @db.Uuid
+  action      String
+  targetType  String
+  targetId    String?
+  metadata    Json
+  createdAt   DateTime @default(now())
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+}

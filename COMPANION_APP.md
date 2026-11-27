@@ -1,0 +1,14 @@
+# ModFoundry Connect
+
+Windows 10/11 first. Tauri UI with Rust profile adapters, local inventory and mutation journal. HTTPS outbound polling with backoff; no listener. Pair via short-lived one-time code with rate limiting, browser authorization and a separately held high-entropy polling secret. Bind pairing to device identity, account and server origin. Issue scoped revocable credentials via TLS and store in OS credential vault. Inventory uses opaque identifiers and minimal metadata; show exact filesystem path locally. Optional startup, tray, signed updates, logs, and manual disconnect. No generic shell or arbitrary URL jobs.
+
+## Installation transaction
+
+1. Read launcher metadata in approved roots, resolve profile and game directory and record version, loader, loader version, Java runtime and installed mod/dependency versions. Official launcher first, then Prism, MultiMC, CurseForge, Modrinth App and ATLauncher adapters. Unknown metadata requires manual selection and positive validation.
+2. Web user selects device/profile/artifact and reviews requirements. Device re-reads live state and presents exact path, conflicts and proposed changes. Local approval binds job ID, profile identity, SHA-256, replacement set and expiry. Revalidate before writing.
+3. Resolve direct and transitive required dependencies against allowlisted distribution services, license eligibility and pinned hashes. Detect ID duplicates, conflicts and gaps. Additional dependencies need approval. For unavailable dependencies, direct the user to authorized acquisition.
+4. Where Minecraft is running or the profile cannot be safely locked, defer. Reject symlinks, Windows reparse points and paths outside the authorized root. Disallow archive extraction for Java JAR installation. For supported pack archives apply entry limits and safe path validation.
+5. Stage files on the destination volume, verify SHA-256, create verified backups, journal changes, replace atomically per file and verify final state. Recover aborted multi-file installs from the journal or report recovery required. Send idempotent receipts bound to device and install job. Keep local rollback backups according to retention.
+6. Provide enable/disable, uninstall, update, restore, folder open and supported launcher actions using the same ownership and backup model. Profile creation uses supported tooling and dedicated directories with explicit approval. No Microsoft credentials, entitlement bypass or redistribution of game files.
+
+Java JARs go in the selected profile’s mods directory. Bedrock prefers supported MCADDON/MCPACK import with activation done through approved game flows. Mobile uses supported sharing/import, consoles receive platform restriction guidance. Server deployment uses a separate scoped SFTP or supported API adapter with host identity verification, backups, rollback and explicit restart approval.
