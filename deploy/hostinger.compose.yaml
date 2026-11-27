@@ -30,7 +30,9 @@ services:
     networks: [private]
 
   migrate:
-    image: ghcr.io/kawika4783/modfoundry-api:latest
+    build:
+      context: https://github.com/kawika4783/ModFoundry.git#main
+      dockerfile: infra/api.Dockerfile
     command: ["pnpm", "db:migrate"]
     environment:
       DATABASE_URL: postgresql://modfoundry:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the application environment}@postgres:5432/modfoundry?schema=public
@@ -41,7 +43,9 @@ services:
     networks: [private]
 
   api:
-    image: ghcr.io/kawika4783/modfoundry-api:latest
+    build:
+      context: https://github.com/kawika4783/ModFoundry.git#main
+      dockerfile: infra/api.Dockerfile
     environment:
       NODE_ENV: production
       PORT: "4000"
@@ -63,7 +67,9 @@ services:
     networks: [private]
 
   web:
-    image: ghcr.io/kawika4783/modfoundry-web:latest
+    build:
+      context: https://github.com/kawika4783/ModFoundry.git#main
+      dockerfile: infra/web.Dockerfile
     environment:
       NODE_ENV: production
       API_URL: http://api:4000
