@@ -11,6 +11,8 @@ docker compose -f deploy/hostinger.foundation.compose.yaml --env-file .env ps
 curl -f http://127.0.0.1:32122/api/v1/health
 ```
 
+The foundation stack was smoke tested on Hostinger in `/docker/modfoundry-foundation`. The web container joins a private internal network for API access and a separate edge bridge to publish only `127.0.0.1:32122`. Runtime images bundle pnpm, so startup does not require npm registry access. A successful localhost test does not make this stack ready for public traffic.
+
 The `seed` job creates only catalog entries and plan versions, not an administrator. The stack is intentionally separate from the existing public workbench preview. Do not expose registration or point public traffic at this stack until TLS, email verification, abuse controls, administrator setup, backup/restore and live authentication checks are complete. No Stripe or compilation services are deployed by this file.
 
 | Environment | Initial estimate | Assumptions |
