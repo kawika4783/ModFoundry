@@ -9,6 +9,9 @@ export class ProjectsController {
   @Get() async list(@Req() req: Request) { return this.projects.list(await this.auth.requireIdentity(req)); }
   @Post() async create(@Req() req: Request, @Body() body: Record<string, unknown>) { return this.projects.create(await this.auth.requireIdentity(req, true), body); }
   @Get(':id') async get(@Req() req: Request, @Param('id') id: string) { return this.projects.get(await this.auth.requireIdentity(req), id); }
+  @Get(':id/targets/:targetId/source') async source(@Req() req: Request, @Param('id') id: string, @Param('targetId') targetId: string) {
+    return this.projects.source(await this.auth.requireIdentity(req), id, targetId);
+  }
   @Patch(':id') async rename(@Req() req: Request, @Param('id') id: string, @Body() body: Record<string, unknown>) { return this.projects.rename(await this.auth.requireIdentity(req, true), id, body); }
   @Post(':id/archive') async archive(@Req() req: Request, @Param('id') id: string) { return this.projects.setStatus(await this.auth.requireIdentity(req, true), id, 'ARCHIVED'); }
   @Post(':id/restore') async restore(@Req() req: Request, @Param('id') id: string) { return this.projects.setStatus(await this.auth.requireIdentity(req, true), id, 'ACTIVE'); }

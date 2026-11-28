@@ -30,6 +30,7 @@ All paths below are under `/api/v1`. The browser uses a same-origin Next.js prox
 | POST | /projects/:id/archive | Archive without deletion |
 | POST | /projects/:id/restore | Restore within plan limit |
 | PATCH | /projects/:id/targets/:targetId | Save validated document with `documentVersion` optimistic lock |
+| GET | /projects/:id/targets/:targetId/source | Inspect deterministic Java 1.21.1 Fabric candidate source files for a saved, tenant-owned target |
 
-Creating a project accepts `{name,profileId,document}`, where `document` is a block `{kind,identifier,displayName,lightLevel,hardness}` or item `{kind,identifier,displayName,stackSize}`. This is a draft format; it does not generate code or verify gameplay compatibility. Candidate profiles may be used for drafts but cannot compile.
+Creating a project accepts `{name,profileId,document}`, where `document` is a block `{kind,identifier,displayName,lightLevel,hardness}` or item `{kind,identifier,displayName,stackSize}`. The source inspection response includes `documentVersion`, `profileKey`, `revision`, `modId`, `status: UNTESTED_SOURCE`, `diagnostics` and a path-to-content `files` map. It only accepts the exact Java 1.21.1 Fabric candidate revision. The files have placeholder vanilla textures; this is not a ZIP, a Gradle project, a compiled JAR or gameplay verification. Candidate profiles cannot compile.
 

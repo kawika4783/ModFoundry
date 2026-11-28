@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, DraftDocument, Project } from './api-client';
 
+type SourcePreview = { documentVersion: number; modId: string; status: 'UNTESTED_SOURCE'; diagnostics: string[]; files: Record<string, string> };
+
 export function ProjectEditor({ id }: { id: string }) {
   const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
@@ -11,6 +13,8 @@ export function ProjectEditor({ id }: { id: string }) {
   const [status, setStatus] = useState('Loading…');
   const [error, setError] = useState('');
   const [tick, setTick] = useState(0);
+  const [source, setSource] = useState<SourcePreview | null>(null);
+  const [selectedFile, setSelectedFile] = useState('');
   const saving = useRef(false);
   const lastSaved = useRef('');
   const version = useRef(1);
@@ -50,7 +54,16 @@ export function ProjectEditor({ id }: { id: string }) {
   if (error && !project) return <main className="portal"><div className="portalBody"><p className="error" role="alert">{error}</p><Link href="/dashboard">Back to projects</Link></div></main>;
   if (!project || !document) return <main className="portal"><div className="portalBody">Loading editor…</div></main>;
   const target = project.targets[0];
-  const update = (changes: Partial<DraftDocument>) => { setError(''); setDocument({ ...document, ...changes } as DraftDocument); };
+  const update = (changes: Partial<DraftDocument>) => { setError(''); setSource(null); setDocument({ ...document, ...changes } as DraftDocument); };
+  const inspectSource = async () => {
+    setError('');
+    try {
+      const result = await api<SourcePreview>(`/projects/${id}/targets/${target.id}/source`);
+      if (result.documentVersion !== version.current || serialized !== lastSaved.current) throw new Error('Save changes before inspecting source');
+      setSource(result);
+      setSelectedFile(Object.keys(result.files)[0]);
+    } catch (problem) { setError(problem instanceof Error ? problem.message : 'Unable to generate source'); }
+  };
   return <main className="portal">
     <header className="portalHeader"><Link href="/" className="portalBrand">▧ ModFoundry</Link><Link href="/dashboard">← Projects</Link><span>{status}</span></header>
     <div className="portalBody editorPage">
@@ -64,8 +77,10 @@ export function ProjectEditor({ id }: { id: string }) {
           <label>Light level: {document.lightLevel}<input type="range" min="0" max="15" value={document.lightLevel} onChange={event => update({ lightLevel: Number(event.target.value) })}/></label>
           <label>Hardness: {document.hardness}<input type="range" min="0" max="50" step="0.5" value={document.hardness} onChange={event => update({ hardness: Number(event.target.value) })}/></label>
         </> : <label>Stack size: {document.stackSize}<input type="range" min="1" max="64" value={document.stackSize} onChange={event => update({ stackSize: Number(event.target.value) })}/></label>}
-        <p className="compatNote">Changes save automatically. This is a structured draft; source generation and compilation are not available for this candidate profile.</p>
-      </section><section className="creationCard previewCard"><h2>Draft summary</h2><div className="draftPreview"><div className="draftMark">▧</div><strong>{document.displayName || 'Unnamed'}</strong><code>modfoundry:{document.identifier}</code><span>{document.kind.toUpperCase()}</span></div><p className="compatNote">No texture or in-game model has been generated yet.</p></section></div>
+        <p className="compatNote">Changes save automatically. Generated source is for inspection; compilation and in-game testing are not available for this candidate profile.</p>
+        <button type="button" className="portalButton" disabled={saving.current || serialized !== lastSaved.current} onClick={() => void inspectSource()}>Inspect generated source</button>
+      </section><section className="creationCard previewCard"><h2>Draft summary</h2><div className="draftPreview"><div className="draftMark">▧</div><strong>{document.displayName || 'Unnamed'}</strong><code>{source?.modId ?? 'project'}:{document.identifier}</code><span>{document.kind.toUpperCase()}</span></div><p className="compatNote">Generated models use vanilla placeholder textures. No custom texture or in-game preview is available yet.</p></section></div>
+      {source && <section className="creationCard sourcePanel" aria-label="Generated source"><h2>Generated source · untested</h2>{source.diagnostics.map(message => <p className="compatNote" key={message}>{message}</p>)}<label>File<select value={selectedFile} onChange={event => setSelectedFile(event.target.value)}>{Object.keys(source.files).map(path => <option key={path} value={path}>{path}</option>)}</select></label><pre><code>{source.files[selectedFile]}</code></pre></section>}
     </div>
   </main>;
 }
