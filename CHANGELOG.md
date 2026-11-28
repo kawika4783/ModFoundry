@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added tenant-scoped Java 1.21.1 Fabric item/block source inspection from saved drafts, with placeholder assets and explicit untested status; no JAR build is offered.
 - Deployed and smoke tested the isolated foundation stack on Hostinger: web, API, PostgreSQL, Redis, migration and catalog seed. Kept registration off and the web bound to localhost.
 - Fixed Compose build contexts, packaged pnpm in runtime images so private services do not download at startup, and attached the web service to an edge bridge for localhost port publishing.
 

@@ -3,30 +3,13 @@ import { Prisma, ProjectStatus } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
 import { Identity } from '../auth/auth.service';
 import { PrismaService } from '../database/prisma.service';
+import { parseDocument } from './document';
+import { generateFabric1211Source } from './fabric-1211-source';
+export { parseDocument } from './document';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const identifier = /^[a-z][a-z0-9_]{1,63}$/;
 const assertId = (id: string) => { if (!uuid.test(id)) throw new BadRequestException('Invalid identifier'); };
 const editorRoles = ['OWNER', 'ADMIN', 'EDITOR'];
-
-export function parseDocument(input: unknown): Prisma.InputJsonObject {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new BadRequestException('Invalid editor document');
-  const value = input as Record<string, unknown>;
-  if (value.kind !== 'block' && value.kind !== 'item') throw new BadRequestException('Only block and item drafts are accepted');
-  if (typeof value.identifier !== 'string' || !identifier.test(value.identifier)) throw new BadRequestException('Use a lowercase identifier with letters, digits and underscores');
-  if (typeof value.displayName !== 'string' || value.displayName.trim().length < 1 || value.displayName.length > 80) throw new BadRequestException('Invalid display name');
-  if (value.kind === 'block') {
-    const lightLevel = value.lightLevel, hardness = value.hardness;
-    if (!Number.isInteger(lightLevel) || (lightLevel as number) < 0 || (lightLevel as number) > 15 ||
-        typeof hardness !== 'number' || !Number.isFinite(hardness) || hardness < 0 || hardness > 50) {
-      throw new BadRequestException('Block light must be 0–15 and hardness 0–50');
-    }
-    return { kind: 'block', identifier: value.identifier, displayName: value.displayName.trim(), lightLevel, hardness } as Prisma.InputJsonObject;
-  }
-  const stackSize = value.stackSize;
-  if (!Number.isInteger(stackSize) || (stackSize as number) < 1 || (stackSize as number) > 64) throw new BadRequestException('Item stack size must be 1–64');
-  return { kind: 'item', identifier: value.identifier, displayName: value.displayName.trim(), stackSize } as Prisma.InputJsonObject;
-}
 
 @Injectable()
 export class ProjectsService {
@@ -87,6 +70,15 @@ export class ProjectsService {
     });
     if (!project) throw new NotFoundException();
     return project;
+  }
+
+  async source(identity: Identity, projectId: string, targetId: string) {
+    assertId(targetId);
+    const project = await this.get(identity, projectId);
+    const target = project.targets.find(value => value.id === targetId);
+    if (!target) throw new NotFoundException();
+    const profile = await this.prisma.compatibilityProfile.findUniqueOrThrow({ where: { id: target.profileId } });
+    return { documentVersion: target.documentVersion, ...generateFabric1211Source(profile, project.slug, target.document) };
   }
 
   async rename(identity: Identity, id: string, body: Record<string, unknown>) {
