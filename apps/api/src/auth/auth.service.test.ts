@@ -26,4 +26,15 @@ describe('session validation', () => {
     const service = new AuthService({ session: { findUnique: vi.fn().mockResolvedValue({ ...session, expiresAt: new Date(0) }) } } as never);
     await expect(service.requireIdentity({ cookies: { modfoundry_session: 'expired-token' } } as never)).rejects.toThrow(UnauthorizedException);
   });
+  it('keeps public registration disabled by default', async () => {
+    const previous = process.env.REGISTRATION_ENABLED;
+    delete process.env.REGISTRATION_ENABLED;
+    try {
+      const service = new AuthService({} as never);
+      await expect(service.register({ email: 'person@example.com', password: 'long-password-123' }, {} as never)).rejects.toThrow(ForbiddenException);
+    } finally {
+      if (previous === undefined) delete process.env.REGISTRATION_ENABLED;
+      else process.env.REGISTRATION_ENABLED = previous;
+    }
+  });
 });

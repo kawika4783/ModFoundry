@@ -30,6 +30,7 @@ export class AuthService {
   }
 
   async register(body: Record<string, unknown>, response: Response) {
+    if (process.env.REGISTRATION_ENABLED !== 'true') throw new ForbiddenException('Registration is not enabled');
     const { email, password } = this.credentials(body);
     const free = await this.prisma.planVersion.findFirst({ where: { code: 'free', active: true }, orderBy: { version: 'desc' } });
     if (!free) throw new Error('Free plan has not been seeded');

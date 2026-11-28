@@ -2,7 +2,7 @@
 
 ## Foundation smoke deployment (not public production)
 
-`deploy/hostinger.foundation.compose.yaml` builds web/API images from this repository and runs PostgreSQL, Redis, migrations and deterministic seed. It binds the web service to `127.0.0.1:32122`, so it is not publicly exposed. Use an isolated checkout and an untracked, owner-readable `.env` with a randomly generated `POSTGRES_PASSWORD` and `APP_URL=http://127.0.0.1:32122`. Run:
+`deploy/hostinger.foundation.compose.yaml` builds web/API images from this repository and runs PostgreSQL, Redis, migrations and deterministic seed. It binds the web service to `127.0.0.1:32122`, so it is not publicly exposed. Use an isolated checkout and an untracked, owner-readable `.env` with a randomly generated `POSTGRES_PASSWORD` and `APP_URL=http://127.0.0.1:32122`. Registration is off by default; set `REGISTRATION_ENABLED=true` only for an isolated smoke test, then switch it off again. Run:
 
 ```sh
 docker compose -f deploy/hostinger.foundation.compose.yaml --env-file .env build
