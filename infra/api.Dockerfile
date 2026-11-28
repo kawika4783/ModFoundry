@@ -12,7 +12,7 @@ COPY apps/api apps/api
 COPY packages/database packages/database
 RUN pnpm db:generate && pnpm --filter @modfoundry/api build
 FROM node:22-alpine
-RUN apk add --no-cache openssl && corepack enable && addgroup -S app && adduser -S app -G app
+RUN apk add --no-cache openssl && npm install -g pnpm@11.25.0 && addgroup -S app && adduser -S app -G app
 WORKDIR /app
 COPY --from=build --chown=app:app /app /app
 USER app
