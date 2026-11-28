@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Deployed and smoke tested the isolated foundation stack on Hostinger: web, API, PostgreSQL, Redis, migration and catalog seed. Kept registration off and the web bound to localhost.
+- Fixed Compose build contexts, packaged pnpm in runtime images so private services do not download at startup, and attached the web service to an edge bridge for localhost port publishing.
+
 - Added scoped account sessions, CSRF checks, tenant project draft persistence and Free plan limits.
 - Added account, configuration wizard, project list and automatically saved block/item draft editor.
 - Added a separate loopback-only foundation Compose stack for VPS smoke testing; public release remains gated.
