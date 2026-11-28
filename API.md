@@ -14,3 +14,22 @@ Serve versioned JSON under /api/v1, publish OpenAPI and share generated clients.
 | Deferred modules | /community, /teams, /servers, /marketplace |
 
 Authorize each resource from membership, role, entitlement and explicit object ownership. Use cursor pagination and SSE for resumable build events. Error envelope contains stable code, field paths and request ID. Unsafe replays require an idempotency key scoped to principal, route and request hash. Revision writes require current version, returning conflict for stale updates. Signed or proxied artifact downloads are time-limited and bound to the authorized artifact. Device jobs contain opaque profile IDs and bounded signed intents. Check device revocation at claim and download.
+# Foundation account and project endpoints
+
+All paths below are under `/api/v1`. The browser uses a same-origin Next.js proxy at the same path. JSON errors use the NestJS `message` field. Sessions use an HttpOnly Secure cookie in production. The `modfoundry_csrf` cookie is readable by the browser and must also be supplied in `X-CSRF-Token` on authenticated mutations. Unsafe requests with an Origin header must match `APP_URL`.
+
+| Method | Path | Description |
+|---|---|---|
+| POST | /auth/register | Create user, personal tenant, Free subscription and session |
+| POST | /auth/login | Authenticate and issue a tenant-bound session |
+| GET | /auth/me | Return current identity and workspace |
+| POST | /auth/logout | Revoke session |
+| GET | /compatibility/profiles | List available registry entries and candidate status |
+| GET, POST | /projects | List tenant projects or create a structured draft |
+| GET, PATCH, DELETE | /projects/:id | Read, rename or soft-delete a tenant project |
+| POST | /projects/:id/archive | Archive without deletion |
+| POST | /projects/:id/restore | Restore within plan limit |
+| PATCH | /projects/:id/targets/:targetId | Save validated document with `documentVersion` optimistic lock |
+
+Creating a project accepts `{name,profileId,document}`, where `document` is a block `{kind,identifier,displayName,lightLevel,hardness}` or item `{kind,identifier,displayName,stackSize}`. This is a draft format; it does not generate code or verify gameplay compatibility. Candidate profiles may be used for drafts but cannot compile.
+

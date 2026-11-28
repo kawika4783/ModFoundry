@@ -1,5 +1,18 @@
 # Deployment proposal
 
+## Foundation smoke deployment (not public production)
+
+`deploy/hostinger.foundation.compose.yaml` builds web/API images from this repository and runs PostgreSQL, Redis, migrations and deterministic seed. It binds the web service to `127.0.0.1:32122`, so it is not publicly exposed. Use an isolated checkout and an untracked, owner-readable `.env` with a randomly generated `POSTGRES_PASSWORD` and `APP_URL=http://127.0.0.1:32122`. Run:
+
+```sh
+docker compose -f deploy/hostinger.foundation.compose.yaml --env-file .env build
+docker compose -f deploy/hostinger.foundation.compose.yaml --env-file .env up -d
+docker compose -f deploy/hostinger.foundation.compose.yaml --env-file .env ps
+curl -f http://127.0.0.1:32122/api/v1/health
+```
+
+The `seed` job creates only catalog entries and plan versions, not an administrator. The stack is intentionally separate from the existing public workbench preview. Do not expose registration or point public traffic at this stack until TLS, email verification, abuse controls, administrator setup, backup/restore and live authentication checks are complete. No Stripe or compilation services are deployed by this file.
+
 | Environment | Initial estimate | Assumptions |
 |---|---|---|
 | Development / smoke | 4 vCPU, 8 GB RAM, 80 GB SSD | One build at a time, light traffic and no concurrent game test |
