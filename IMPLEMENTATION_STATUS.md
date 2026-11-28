@@ -13,6 +13,7 @@
 - Server-side Free plan project count enforcement, tenant-scoped project reads and edits, candidate profile draft creation, archive/restore and optimistic document saves.
 - Account, project list, configuration wizard and saved block/item draft editor UI. The original workbench is labeled as an illustrative demo.
 - Local type checks, API unit tests and Next.js production build for this phase.
+- Isolated Hostinger foundation smoke stack deployed from GitHub to `/docker/modfoundry-foundation`; PostgreSQL, Redis, API and web are healthy. On the VPS, localhost port 32122 returned HTTP 200 for the web, API health and seeded compatibility profile endpoints; existing preview on port 32121 also returned HTTP 200. Registration remains disabled and the foundation is not publicly exposed.
 
 ## Incomplete
 
